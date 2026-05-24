@@ -10,8 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// MEMORY CHAT SEMENTARA
 const conversationMemory = new Map();
 
+// GEMINI AI
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
@@ -27,14 +29,26 @@ app.post("/api/chat", async (req, res) => {
   try {
 
     const { message, sessionId } = req.body;
-    const memoryKey = sessionId || `${req.ip}-${req.headers["user-agent"] || "unknown"}`;
-    const history = conversationMemory.get(memoryKey) || [];
 
+    // IDENTITAS USER
+    const memoryKey =
+      sessionId ||
+      `${req.ip}-${req.headers["user-agent"] || "unknown"}`;
+
+    // AMBIL HISTORY
+    const history =
+      conversationMemory.get(memoryKey) || [];
+
+    // BATASI MEMORY
     const historyContext = history
-      .slice(-10)
-      .map((item) => `${item.sender === "user" ? "User" : "AI"}: ${item.text}`)
+      .slice(-4)
+      .map(
+        (item) =>
+          `${item.sender === "user" ? "User" : "AI"}: ${item.text}`
+      )
       .join("\n");
 
+    // PROMPT AI
     const prompt = `
 Kamu adalah ExplainMe AI.
 
@@ -50,55 +64,100 @@ Aturan:
 - Di akhir jawaban, tanyakan apakah ada lagi yang ingin ditanyakan atau tawarkan topik terkait yang masih berhubungan.
 
 ${historyContext ? `Percakapan sebelumnya:\n${historyContext}\n\n` : ""}
+
 Pertanyaan user:
 ${message}
 `;
 
+    // TIMEOUT PROTECTION
+    const controller = new AbortController();
+
+    setTimeout(() => {
+      controller.abort();
+    }, 15000);
+
+    // REQUEST KE GEMINI
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
+      signal: controller.signal,
     });
 
+    // AMBIL TEXT RESPONSE
     const replyText =
       response.text ||
       response.candidates?.[0]?.content?.parts?.[0]?.text ||
       "Maaf, terjadi kesalahan saat memproses jawaban AI.";
 
-    history.push({ sender: "user", text: message });
-    history.push({ sender: "ai", text: replyText });
-    if (history.length > 20) {
-      history.splice(0, history.length - 20);
+    // SIMPAN HISTORY
+    history.push({
+      sender: "user",
+      text: message,
+    });
+
+    history.push({
+      sender: "ai",
+      text: replyText,
+    });
+
+    // BATASI TOTAL MEMORY
+    if (history.length > 8) {
+      history.splice(0, history.length - 8);
     }
+
+    // UPDATE MEMORY
     conversationMemory.set(memoryKey, history);
 
+    // RESPONSE KE FRONTEND
     res.json({
       reply: replyText,
     });
 
   } catch (error) {
 
-    console.error("AI request error:", error);
+    // LOG ERROR DETAIL
+    console.error(
+      "AI request error:",
+      JSON.stringify(error, null, 2)
+    );
 
-    // Default response
+    // DEFAULT ERROR
     let statusCode = 500;
     let clientMessage = "Terjadi error pada AI";
-    let details = error?.message || String(error) || "Unknown error";
 
-    // Detect quota / rate limit errors and return 429 so frontend can show a friendly message
+    let details =
+      error?.message ||
+      String(error) ||
+      "Unknown error";
+
+    // DETEKSI QUOTA ERROR
     try {
-      const errStr = typeof error === "string" ? error : JSON.stringify(error);
+
+      const errStr =
+        typeof error === "string"
+          ? error
+          : JSON.stringify(error);
+
       if (
-        (errStr && errStr.includes("RESOURCE_EXHAUSTED")) ||
-        (errStr && errStr.toLowerCase().includes("quota exceeded")) ||
+        (errStr &&
+          errStr.includes("RESOURCE_EXHAUSTED")) ||
+        (errStr &&
+          errStr.toLowerCase().includes("quota exceeded")) ||
         error?.code === 429
       ) {
+
         statusCode = 429;
-        clientMessage = "Kuota AI habis. Silakan coba lagi nanti atau gunakan API key lain.";
+
+        clientMessage =
+          "Kuota AI habis. Silakan coba lagi nanti.";
+
       }
+
     } catch (e) {
-      // ignore stringify errors
+      // ignore
     }
 
+    // KIRIM ERROR KE FRONTEND
     res.status(statusCode).json({
       error: clientMessage,
       details,

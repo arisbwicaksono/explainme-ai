@@ -1,34 +1,44 @@
-# ExplainMe AI
+# ExplainMe AI 🤖
 
-ExplainMe AI adalah chatbot berbasis AI yang membantu menjelaskan topik rumit menjadi sederhana dan mudah dipahami.
+ExplainMe AI adalah chatbot berbasis AI yang mampu menjelaskan topik rumit menjadi sederhana dan mudah dipahami menggunakan teknologi Google Gemini API.
 
-## Fitur
-- Chat AI menggunakan Gemini API
+## 🚀 Features
+
+- AI Chatbot berbasis Gemini API
+- Penjelasan sederhana dan santai
 - Memory percakapan sederhana
-- UI modern dark mode
 - Auto scroll chat
-- LocalStorage chat history
-- Clear chat feature
+- Clear chat
+- Penyimpanan chat menggunakan localStorage
+- Responsive modern UI
+- Loading typing indicator
+- Error handling dan quota handling
 
-## Teknologi
-- React + Vite
-- Express.js
-- Gemini API
-- Tailwind CSS
+---
 
-## Cara Menjalankan
+## 🛠️ Technologies Used
 
 ### Frontend
-```bash
-npm install
-npm run dev
-```
+- React.js
+- Tailwind CSS
+- Vite
 
 ### Backend
-```bash
-npm install
-node index.js
-```
+- Node.js
+- Express.js
+- Google Gemini API
 
-## Author
-Aris Budi Wicaksono
+---
+
+## 📷 User Interface
+
+Modern chatbot interface inspired by ChatGPT with responsive layout and clean dark mode design.
+
+---
+
+## ⚙️ Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/arisbwicaksono/explainme-ai.git
